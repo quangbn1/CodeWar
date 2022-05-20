@@ -14,9 +14,9 @@ namespace bot
         private SmartFox sfs;
         private const string IP = "172.16.100.112";
         // private const string IP = "10.10.10.18";
-        private const string username = "trung.hoangdinh";
+        private const string username = "quang.buingoc";
 
-        private const string token = "bot";
+        private const string token = "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJxdWFuZy5idWluZ29jIiwiYXV0aCI6IlJPTEVfVVNFUiIsIkxBU1RfTE9HSU5fVElNRSI6MTY1Mjk1MzM4MTg3NCwiZXhwIjoxNjU0NzUzMzgxfQ.QFJf1xLUI6VuhE0Z1I5HeutNpv1FXfHN9SA4dK-F4RcX240Z9eN7nputHsQU-2uvT9PY55lPX2exmLO2apXSqg";
 
         private const int TIME_INTERVAL_IN_MILLISECONDS = 1000;
         private const int ENEMY_PLAYER_ID = 0;
@@ -31,6 +31,7 @@ namespace bot
         private Room room;
         protected Player botPlayer;
         protected Player enemyPlayer;
+        protected Player myDefaultBot;
         protected int currentPlayerId;
         protected Grid grid;
 
@@ -182,11 +183,13 @@ namespace bot
             if (user1.IsItMe)
             {
                 botPlayer = new Player(user1.PlayerId, "player1");
+                myDefaultBot = new Player(user1.PlayerId, "player1");
                 enemyPlayer = new Player(ENEMY_PLAYER_ID, "player2");
             }
             else
             {
                 botPlayer = new Player(BOT_PLAYER_ID, "player2");
+                myDefaultBot = new Player(BOT_PLAYER_ID, "player2");
                 enemyPlayer = new Player(ENEMY_PLAYER_ID, "player1");
             }
         }
@@ -217,36 +220,61 @@ namespace bot
             sendExtensionRequest(ConstantCommand.FINISH_TURN, data);
         }
 
-        public void SendCastSkill(Hero heroCastSkill)
+        public void SendCastSkill(Hero heroCastSkill, Hero target = null)
         {
+            if(heroCastSkill.id == HeroIdEnum.MONK)
+            {
+                botPlayer.isFirstHeroUseSkill = true;
+            }
+
             var data = new SFSObject();
 
             data.PutUtfString("casterId", heroCastSkill.id.ToString());
-            if (heroCastSkill.isHeroSelfSkill())
+            if(target!=null)
             {
-                data.PutUtfString("targetId", botPlayer.firstHeroAlive().id.ToString());
+                data.PutUtfString("targetId", target.id.ToString());
             }
             else
             {
-                data.PutUtfString("targetId", enemyPlayer.firstHeroAlive().id.ToString());
+                if (heroCastSkill.isHeroSelfSkill())
+                {
+                    data.PutUtfString("targetId", botPlayer.firstHeroAlive().id.ToString());
+                }
+                else
+                {
+                    data.PutUtfString("targetId", enemyPlayer.firstHeroAlive().id.ToString());
+                }
             }
 
             data.PutUtfString("selectedGem", selectGem().ToString());
             data.PutUtfString("gemIndex", new Random().Next(64).ToString());
             data.PutBool("isTargetAllyOrNot", false);
             log("sendExtensionRequest()|room:" + room.Name + "|extCmd:" + ConstantCommand.USE_SKILL + "|Hero cast skill: " + heroCastSkill.name);
+            
+            Console.WriteLine("0");
+            Console.WriteLine(heroCastSkill.id.ToString());
+            Console.WriteLine(data.GetUtfString("casterId"));
+            Console.WriteLine(data.GetUtfString("targetId"));
+            
             sendExtensionRequest(ConstantCommand.USE_SKILL, data);
+            Console.WriteLine("0");
         }
-
+        
         public void SendSwapGem()
         {
-            Pair<int> indexSwap = grid.recommendSwapGem();
+            SendSwapGem(grid.recommendSwapGem(botPlayer));
+        }
+
+        public void SendSwapGem(Pair<int> swapGem)
+        {
+            Pair<int> indexSwap = swapGem;
 
             var data = new SFSObject();
             data.PutInt("index1", indexSwap.param1);
             data.PutInt("index2", indexSwap.param2);
             log("sendExtensionRequest()|room:" + room.Name + "|extCmd:" + ConstantCommand.SWAP_GEM + "|index1: " + indexSwap.param1 + " index2: " + indexSwap.param2);
             sendExtensionRequest(ConstantCommand.SWAP_GEM, data);
+
         }
 
         public void sendExtensionRequest(String extCmd, ISFSObject paramz)
