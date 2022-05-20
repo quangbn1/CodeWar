@@ -40,8 +40,28 @@ namespace bot
             return hp > 0;
         }
 
+        public int GetHp()
+        {
+            return hp;
+        }
+
+        public int GetMana()
+        {
+            return mana;
+        }
+
+        public int GetAtk()
+        {
+            return attack;
+        }
+
         public bool isFullMana() {
             return mana >= maxMana;
+        }
+
+        public int NeedMana()
+        {
+            return maxMana - mana;
         }
 
         public bool isHeroSelfSkill() {

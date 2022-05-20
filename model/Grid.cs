@@ -24,8 +24,13 @@ namespace bot {
                 gemTypes.Add(gem.type);
             }
         }
+        
+        public List<GemSwapInfo> GetSuggestMatch()
+        {
+            return suggestMatch();;
+        }
 
-        public Pair<int> recommendSwapGem() {
+        public Pair<int> recommendSwapGem(Player botPlayer) {
             List<GemSwapInfo> listMatchGem = suggestMatch();
 
             Console.WriteLine("recommendSwapGem " + listMatchGem.Count);
@@ -33,20 +38,88 @@ namespace bot {
                 return new Pair<int>(-1, -1);
             }
 
-            GemSwapInfo matchGemSizeThanFour = listMatchGem.Where(gemMatch => gemMatch.sizeMatch > 4).FirstOrDefault();
-            if (matchGemSizeThanFour != null) {
-                return matchGemSizeThanFour.getIndexSwapGem();
+            // //Check 5
+            // GemSwapInfo matchGemSizeThanFour = listMatchGem.Where(gemMatch => gemMatch.sizeMatch > 4).FirstOrDefault();
+            // if (matchGemSizeThanFour != null) {
+            //     return matchGemSizeThanFour.getIndexSwapGem();
+            // }
+
+            //Gem Level 3
+            foreach (GemSwapInfo matchGem in listMatchGem)
+            {
+                if(matchGem.level>2)
+                {
+                    Console.WriteLine("  -----+++ Choose Gems: "+ matchGem.level);
+                    return matchGem.getIndexSwapGem();
+                }
             }
-            GemSwapInfo matchGemSizeThanThree = listMatchGem.Where(gemMatch => gemMatch.sizeMatch > 3).FirstOrDefault();
-            if (matchGemSizeThanThree != null) {
-                return matchGemSizeThanThree.getIndexSwapGem();
+
+            //Test
+            //Find gem modifier
+            foreach (GemSwapInfo matchGem in listMatchGem)
+            {
+                if(matchGem.gemModifier!=GemModifier.NONE && matchGem.gemModifier!=GemModifier.POINT)
+                {
+                    return matchGem.getIndexSwapGem();
+                }
             }
+
+            //Gem Level 2
+            foreach (GemSwapInfo matchGem in listMatchGem)
+            {
+                if(matchGem.level>1)
+                {
+                    Console.WriteLine("  -----+++ Choose Gems: "+ matchGem.level);
+                    return matchGem.getIndexSwapGem();
+                }
+            }
+
+Console.WriteLine("Gem");
+foreach (GemType type in myHeroGemType)
+{
+    Console.WriteLine(type);
+}
+Console.WriteLine("Gem");
+            //Just get 4 match for recommend match gems
+            foreach (GemType type in myHeroGemType)
+            {
+                //Check 4
+                List<GemSwapInfo> matchGemSizeThanThrees = listMatchGem.Where(gemMatch => gemMatch.sizeMatch > 3).ToList();
+
+                foreach (var matchGem in matchGemSizeThanThrees)
+                {
+                    if (matchGem != null) {
+                        return matchGem.getIndexSwapGem();
+                    }
+                }
+            }
+
+            //Check 3 sword
             GemSwapInfo matchGemSword = listMatchGem.Where(gemMatch => gemMatch.type == GemType.SWORD).FirstOrDefault();
+
             if (matchGemSword != null) {
                 return matchGemSword.getIndexSwapGem();
             }
 
+            //Get gem for hero high mana
+            foreach (Hero hero in botPlayer.heroes)
+            {
+                if(hero.isAlive() && !hero.isFullMana() && hero.NeedMana()<=3)
+                {
+                    foreach (GemType gt in hero.gemTypes)
+                    {
+                        GemSwapInfo matchGem = listMatchGem.Where(gemMatch => gemMatch.type == gt).FirstOrDefault();
+                        //listMatchGem.stream().filter(gemMatch -> gemMatch.getType() == type).findFirst();
+
+                        if (matchGem != null) {
+                            return matchGem.getIndexSwapGem();
+                        }
+                    }
+                }
+            }
+
             foreach (GemType type in myHeroGemType) {
+                
                 GemSwapInfo matchGem = listMatchGem.Where(gemMatch => gemMatch.type == type).FirstOrDefault();
                         //listMatchGem.stream().filter(gemMatch -> gemMatch.getType() == type).findFirst();
                 if (matchGem != null) {
@@ -56,7 +129,340 @@ namespace bot {
             return listMatchGem[0].getIndexSwapGem();
         }
 
+        public void UpdateMyGemType(HashSet<GemType> gemType)
+        {
+            myHeroGemType = gemType;
+        }
+
+        public List<Gem> getGems()
+        {
+            return gems;
+        }
+
+//SIMULATION 
+        public Grid(List<Gem> gemsMap)
+        {
+            this.gems = new List<Gem>(gemsMap);
+        }
+
+        public GemSwapInfo UpdateLevel(List<Gem> gemsMap, GemSwapInfo gemSwap)
+        {
+            Grid simulaGrid = new Grid(gemsMap);
+            return simulaGrid.DownGems(gemSwap);
+        }
+
+        public GemSwapInfo DownGems(GemSwapInfo swapGem)
+        {
+            GemSwapInfo result = null;
+
+            Gem temp1 = new Gem(swapGem.getIndexSwapGem().param1, GemType.BLUE,GemModifier.NONE);
+            Gem temp2 = new Gem(swapGem.getIndexSwapGem().param2, GemType.BLUE,GemModifier.NONE);
+
+            Gem current = gems[getGemIndexAt(temp1.x, temp1.y)];
+            Gem target = gems[getGemIndexAt(temp2.x, temp2.y)];
+            //current.isDestroy = true;
+
+            CustomSwap(current, target);
+
+            // for (int y = 0; y < 8; y++)
+            // {
+            //     for (int x = 0; x < 8; x++)
+            //     {
+            //         if(gems[getGemIndexAt(x, y)].isDestroy)
+            //         {
+            //             Console.Write("- ");
+            //         }
+            //         else
+            //         {
+            //             Console.Write((int) gems[getGemIndexAt(x, y)].type +" ");
+            //         }
+            //     }
+            //     Console.WriteLine(" ");
+            // }
+            //     Console.WriteLine(" ");
+            
+            //DROP
+            result = Drop(gems, swapGem);
+
+            // current.isDestroy = false;
+            // target.isDestroy = false;
+            CustomSwap(current, target);
+
+            return result;
+        }
+
+        public GemSwapInfo Drop(List<Gem> gemsMap, GemSwapInfo swapGem)
+        {
+            List<Gem> result =  new List<Gem>(gemsMap);
+            
+            //Set destroy type
+            foreach (Gem gem in swapGem.gems)
+            {
+                gem.isDestroy = true;
+            }
+
+            //Find count by column
+            List<int> countX =  new List<int>();
+
+            for (int x = 0; x < 8; x++)
+            {
+                int count = 0;
+                for (int y = 0; y < 8; y++)
+                {
+                    if(result[getGemIndexAt(x, y)].isDestroy)
+                    {
+                        count++;
+                    }
+                }
+
+                countX.Add(count);
+            }
+
+            List<Gem> rowGem = new List<Gem>();
+            //Find min of column
+            for (int x = 0; x < 8; x++)
+            {
+                for (int y = 0; y < 8; y++)
+                {
+                    Gem gem = result[getGemIndexAt(x,y)];
+
+                    if(gem.isDestroy)
+                    {
+                        rowGem.Add(gem);
+                        break;
+                    }
+                }
+            }
+
+            //Drop gem
+            foreach (Gem row in rowGem)
+            {
+                List<Gem> newColumn = DownGem(row, countX[row.x]);
+
+                if(newColumn!=null)
+                {
+                    for (int y = 0; y < newColumn.Count; y++)
+                    {
+                        result[getGemIndexAt(row.x, y)] = newColumn[y];
+                    }
+                }
+
+                // for (int y = 0; y < 8; y++)
+                // {
+                //     for (int x = 0; x < 8; x++)
+                //     {
+                //         if(result[getGemIndexAt(x, y)].isDestroy)
+                //         {
+                //             Console.Write("- ");
+                //         }
+                //         else
+                //         {
+                //             Console.Write((int) result[getGemIndexAt(x, y)].type +" ");
+                //         }
+                //     }
+                //     Console.WriteLine(" ");
+                // }
+                // Console.WriteLine(" ");
+            }
+
+            foreach (Gem gem in swapGem.gems)
+            {
+                gem.isDestroy = false;
+                gem.isDisable = true;
+            }
+
+            // Console.WriteLine("  -----------  ");
+
+            // foreach (var item in countX)
+            // {
+            //     Console.Write(item+" ");
+            // }
+            // Console.WriteLine("  -----------  ");
+
+    
+            //Check any match
+            int countCombo = 0;
+            int matchSize = 1;
+
+            List<Gem> resultMatch = new List<Gem>();
+            List<Gem> preMatch = new List<Gem>();
+
+            //Check column
+            for (int x = 0; x < 8; x++)
+            {
+                bool isFirst = true;
+
+                for (int y = 0; y < 7; y++)
+                {
+                    Gem currentGem = result[getGemIndexAt(x,y)];
+                    Gem nextGem = result[getGemIndexAt(x,y+1)];
+
+                    if(y == 0)
+                    {
+                        preMatch.Add(currentGem);
+                    }
+
+                    if(currentGem.type == nextGem.type && nextGem.isDisable == false)
+                    {
+                        matchSize++;
+
+                        preMatch.Add(nextGem);
+
+                        if(!isFirst)
+                        {
+                            continue;
+                        }
+
+                        if(matchSize>=3)
+                        {
+                            countCombo++;
+                            isFirst = false;
+                        }
+                    }
+                    else
+                    {
+                        if(preMatch.Count>2)
+                        {
+                            resultMatch.AddRange(preMatch);
+                        }
+
+                        preMatch.Clear();
+                        preMatch.Add(nextGem);
+                        
+                        matchSize = 1;
+                        isFirst = true;
+                    }
+                }
+            }
+            
+            //Check row
+            for (int y = 0; y < 8; y++)
+            {
+                bool isFirst = true;
+
+                for (int x = 0; x < 7; x++)
+                {
+                    Gem currentGem = result[getGemIndexAt(x,y)];
+                    Gem nextGem = result[getGemIndexAt(x+1,y)];
+
+                    if(x == 0)
+                    {
+                        preMatch.Add(currentGem);
+                    }
+
+                    if(currentGem.type == nextGem.type && nextGem.isDisable == false)
+                    {
+                        matchSize++;
+
+                        preMatch.Add(nextGem);
+
+                        if(!isFirst)
+                        {
+                            continue;
+                        }
+
+                        if(matchSize>=3)
+                        {
+                            countCombo++;
+                            isFirst = false;
+                        }
+                    }
+                    else
+                    {
+                        if(preMatch.Count>2)
+                        {
+                            resultMatch.AddRange(preMatch);
+                        }
+
+                        preMatch.Clear();
+                        preMatch.Add(nextGem);
+                        
+                        matchSize = 1;
+                        isFirst = true;
+                    }
+                }
+            }
+
+            preMatch.Clear();
+
+            //Drop again
+            if(countCombo>0)
+            {
+                Console.WriteLine("Combo --- "+ countCombo);
+                swapGem.UpdateLevel(swapGem.level, countCombo);
+                
+                GemSwapInfo newSwapGem = new GemSwapInfo(swapGem.getIndexSwapGem().param1, swapGem.getIndexSwapGem().param2, swapGem.sizeMatch, swapGem.type);
+                newSwapGem.gems.Clear();
+                newSwapGem.gems.AddRange(resultMatch);
+                newSwapGem.level = swapGem.level;
+
+                GemSwapInfo newSwapGem2 = Drop(result, newSwapGem);
+
+                swapGem.level = newSwapGem2.level;
+            }
+
+            result.Clear();
+//RETURN
+            return swapGem;
+        }
+
+        public List<Gem> DownGem(Gem gem, int step = 1)
+        {
+            List<Gem> result = null;
+
+            Gem swapGem = null;
+            if(gem.y+step<8)
+            {
+                swapGem = gems[getGemIndexAt(gem.x, gem.y+step)];
+
+                CustomSwap(gem, swapGem);
+                
+                if(gem.y == 8-step)
+                {
+                    result = new List<Gem>();
+                    for (int i = 0; i < 8; i++)
+                    {
+                        result.Add(gems[getGemIndexAt(gem.x, i)]);
+                    }
+                }
+                else
+                {
+                    result = DownGem(gems[getGemIndexAt(swapGem.x, swapGem.y+1)], step);
+                }
+
+                CustomSwap(gem, swapGem);
+            }
+            return result;
+        }
+        
+        private void CustomSwap(Gem a, Gem b) {
+            int tempIndex = a.index;
+            int tempX = a.x;
+            int tempY = a.y;
+
+            // update reference
+            gems[a.index] = b;
+            gems[b.index] = a;
+
+            // update data of element
+            a.index = b.index;
+            a.x = b.x;
+            a.y = b.y;
+
+            b.index = tempIndex;
+            b.x = tempX;
+            b.y = tempY;
+        }
+//END
+    public List<GemSwapInfo> mathsGem = new List<GemSwapInfo>();
+
         private List<GemSwapInfo> suggestMatch() {
+
+            if(mathsGem.Count>0)
+            {
+                return mathsGem;
+            }
+
             var listMatchGem = new List<GemSwapInfo>();
 
             var tempGems = new List<Gem>(gems);
@@ -83,6 +489,9 @@ namespace bot {
                     checkMatchSwapGem(listMatchGem, currentGem, swapGem);
                 }
             }
+
+            mathsGem.AddRange(listMatchGem);
+
             return listMatchGem;
         }
 
@@ -90,11 +499,41 @@ namespace bot {
             swap(currentGem, swapGem);
             HashSet<Gem> matchGems = matchesAt(currentGem.x, currentGem.y);
 
+            GemModifier currGemModifier = GemModifier.NONE;
+
+            foreach (Gem gem in matchGems)
+            {
+                if(gem.modifier!=GemModifier.NONE)
+                {
+                    currGemModifier = gem.modifier;
+                    break;
+                }
+            }
+
             swap(currentGem, swapGem);
             if (matchGems.Count > 0) {
-                listMatchGem.Add(new GemSwapInfo(currentGem.index, swapGem.index, matchGems.Count, currentGem.type));
+                GemSwapInfo gemSwapInfo = new GemSwapInfo(currentGem.index, swapGem.index, matchGems.Count, currentGem.type);
+                gemSwapInfo.AddGemModifier(currGemModifier);
+
+                foreach (Gem gem in matchGems)
+                {
+                    gemSwapInfo.gems.Add(gem);
+                }
+                // if(!isFirst)
+                // {
+                //     gemSwapInfo = UpdateLevel(gems, gemSwapInfo);
+                    
+                // Console.WriteLine("  ----- Level Gems: "+ gemSwapInfo.level);
+                //     isFirst = true;
+                // }
+                gemSwapInfo.level++;
+                gemSwapInfo = UpdateLevel(gems, gemSwapInfo);
+                Console.WriteLine("  ----- Level Gems: "+ gemSwapInfo.level);
+
+                listMatchGem.Add(gemSwapInfo);
             }
         }
+        bool isFirst = false;
 
         private int getGemIndexAt(int x, int y) {
             return x + y * 8;

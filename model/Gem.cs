@@ -9,6 +9,10 @@ namespace bot
         public int y;
         public GemType type;
 
+        public bool isDestroy = false;
+
+        public bool isDisable = false;
+
         public GemModifier modifier;
 
         public Gem(int index, GemType type, GemModifier gemModifier)
