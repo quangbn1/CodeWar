@@ -30,7 +30,6 @@ namespace bot
             {
                 var hero = new Hero(botPlayerHero.GetSFSObject(i));
                 botPlayer.heroes.Add(hero);
-                myDefaultBot.heroes.Add(hero);
             }
 
             for (int i = 0; i < enemyPlayerHero.Size(); i++)
@@ -119,6 +118,7 @@ namespace bot
             if(fiveGem.param1 !=-1 && fiveGem.param2!=-1)
             {
                 SendSwapGem(fiveGem);
+                return;
             }
 
             //Swap extra gems
@@ -126,6 +126,7 @@ namespace bot
             if(extraGem.param1 !=-1 && extraGem.param2!=-1)
             {
                 SendSwapGem(extraGem);
+                return;
             }
             
             if(HeroCastSkillFirst())
@@ -138,6 +139,7 @@ namespace bot
             if(preSkill.param1 !=-1 && preSkill.param2!=-1)
             {
                 SendSwapGem(preSkill);
+                return;
             }
 
             if(OnHeroCastSkill())
@@ -150,6 +152,7 @@ namespace bot
             if(afterSkill.param1 !=-1 && afterSkill.param2!=-1)
             {
                 SendSwapGem(afterSkill);
+                return;
             }
 
             TaskSchedule(delaySwapGem, _ => SendSwapGem());
@@ -243,8 +246,80 @@ namespace bot
                             }
                         }
 
+                        //Kill high attack hero and has skill
                         foreach (Hero eHero in  enemyPlayer.heroes)
                         {
+                            if(eHero.isAlive() && eHero.GetAtk()>=12 && eHero.isFullMana())
+                            {
+                                if(eHero.id == HeroIdEnum.MERMAID)
+                                {
+                                    TaskSchedule(delaySwapGem, _ => SendCastSkill(heroFullMana, eHero));
+                                    return true;
+                                }
+                                else if(eHero.id == HeroIdEnum.AIR_SPIRIT)
+                                {
+                                    TaskSchedule(delaySwapGem, _ => SendCastSkill(heroFullMana, eHero));
+                                    return true;
+                                }
+                                else if(eHero.id == HeroIdEnum.CERBERUS)
+                                {
+                                    TaskSchedule(delaySwapGem, _ => SendCastSkill(heroFullMana, eHero));
+                                    return true;
+                                }
+                                else if(eHero.id == HeroIdEnum.THUNDER_GOD)
+                                {
+                                    TaskSchedule(delaySwapGem, _ => SendCastSkill(heroFullMana, eHero));
+                                    return true;
+                                }
+                                else if(eHero.id == HeroIdEnum.SEA_GOD)
+                                {
+                                    TaskSchedule(delaySwapGem, _ => SendCastSkill(heroFullMana, eHero));
+                                    return true;
+                                }
+                            }
+                        }
+
+                        //Kill high attack hero
+                        foreach (Hero eHero in  enemyPlayer.heroes)
+                        {
+                            if(eHero.isAlive() && eHero.GetAtk()>=12)
+                            {
+                                if(eHero.id == HeroIdEnum.AIR_SPIRIT)
+                                {
+                                    TaskSchedule(delaySwapGem, _ => SendCastSkill(heroFullMana, eHero));
+                                    return true;
+                                }
+                                else if(eHero.id == HeroIdEnum.CERBERUS)
+                                {
+                                    TaskSchedule(delaySwapGem, _ => SendCastSkill(heroFullMana, eHero));
+                                    return true;
+                                }
+                                else if(eHero.id == HeroIdEnum.MERMAID)
+                                {
+                                    TaskSchedule(delaySwapGem, _ => SendCastSkill(heroFullMana, eHero));
+                                    return true;
+                                }
+                                else if(eHero.id == HeroIdEnum.THUNDER_GOD)
+                                {
+                                    TaskSchedule(delaySwapGem, _ => SendCastSkill(heroFullMana, eHero));
+                                    return true;
+                                }
+                                else if(eHero.id == HeroIdEnum.MONK)
+                                {
+                                    TaskSchedule(delaySwapGem, _ => SendCastSkill(heroFullMana, eHero));
+                                    return true;
+                                }
+                            }
+                        }
+
+                        foreach (Hero eHero in  enemyPlayer.heroes)
+                        {
+                            if(eHero.id == HeroIdEnum.SEA_GOD && eHero.isAlive())
+                            {
+                                TaskSchedule(delaySwapGem, _ => SendCastSkill(heroFullMana, eHero));
+                                return true;
+                            }
+
                             if(eHero.id == HeroIdEnum.DISPATER && eHero.isAlive())
                             {
                                 TaskSchedule(delaySwapGem, _ => SendCastSkill(heroFullMana, eHero));
@@ -252,12 +327,6 @@ namespace bot
                             }
 
                             if(eHero.id == HeroIdEnum.MONK && eHero.isAlive())
-                            {
-                                TaskSchedule(delaySwapGem, _ => SendCastSkill(heroFullMana, eHero));
-                                return true;
-                            }
-
-                            if(eHero.id == HeroIdEnum.SEA_GOD && eHero.isAlive())
                             {
                                 TaskSchedule(delaySwapGem, _ => SendCastSkill(heroFullMana, eHero));
                                 return true;
@@ -298,7 +367,6 @@ namespace bot
 
                         foreach (Hero eHero in enemyPlayer.heroes)
                         {
-                            
                             //Dung skill neu giet duoc muc tieu
                             if(eHero.GetAtk()+fireGemCount>=15 && eHero.isAlive())
                             {
@@ -343,6 +411,13 @@ namespace bot
                 return new Pair<int>(-1, -1);
             }
 
+            //Gem Level + Has extra
+            GemSwapInfo matchFourComboExtra = listMatchGem.Where(gemMatch => gemMatch.hasExtraGem == true).FirstOrDefault();
+            if (matchFourComboExtra != null) {
+                Console.WriteLine("  -----+++ Choose Gems: "+ matchFourComboExtra.level);
+                return matchFourComboExtra.getIndexSwapGem();
+            }
+
             //ExtraGems
             foreach (GemSwapInfo matchGem in listMatchGem)
             {
@@ -381,6 +456,13 @@ namespace bot
                 }
             }
 
+            //Gem Level 4 + Has exp gem
+            GemSwapInfo matchFourComboExp= listMatchGem.Where(gemMatch => (gemMatch.level>3) && gemMatch.hasExpGem == true).FirstOrDefault();
+            if (matchFourComboExp != null) {
+                Console.WriteLine("  -----+++ Choose Gems: "+ matchFourComboExp.level);
+                return matchFourComboExp.getIndexSwapGem();
+            }
+
             //Get buff damage
             foreach (GemSwapInfo matchGem in listMatchGem)
             {
@@ -395,6 +477,28 @@ namespace bot
 
             if (matchFourGemSword != null) {
                 return matchFourGemSword.getIndexSwapGem();
+            }
+
+            //Gem Level 4 + Has sword
+            GemSwapInfo matchFourComboSword = listMatchGem.Where(gemMatch => (gemMatch.level>3) && gemMatch.hasSwordGem == true).FirstOrDefault();
+            if (matchFourComboSword != null) {
+                Console.WriteLine("  -----+++ Choose Gems Level: "+ matchFourComboSword.level);
+                return matchFourComboSword.getIndexSwapGem();
+            }
+
+            //Gem Level 4 + Has modifier
+            GemSwapInfo matchFourComboModifier = listMatchGem.Where(gemMatch => (gemMatch.level>3) && gemMatch.hasModifeGem == true).FirstOrDefault();
+            if (matchFourComboModifier != null) {
+                Console.WriteLine("  -----+++ Choose Gems Level: "+ matchFourComboModifier.level);
+                return matchFourComboModifier.getIndexSwapGem();
+            }
+
+            //Gem Level 4
+            GemSwapInfo matchFourCombo = listMatchGem.Where(gemMatch => (gemMatch.level>3)).FirstOrDefault();
+            if (matchFourCombo != null) {
+                Console.WriteLine("  -----+++ Choose NORMAL Gems ");
+                Console.WriteLine("  -----+++ Choose Gems Level: "+ matchFourCombo.level);
+                return matchFourCombo.getIndexSwapGem();
             }
 
             Console.WriteLine("PreSkill");
@@ -447,6 +551,24 @@ namespace bot
                     }
                 }
             }
+
+
+            //Last sword will end game
+            GemSwapInfo matchSwordEndGame = listMatchGem.Where(gemMatch => gemMatch.type == GemType.SWORD).FirstOrDefault();
+            if (matchSwordEndGame != null) {
+                int countEnemyHeroAlive = 0;
+                foreach (Hero eHero in enemyPlayer.heroes)
+                {
+                    if(eHero.isAlive()) countEnemyHeroAlive++;
+                }
+
+                if(countEnemyHeroAlive == 1 && botPlayer.firstHeroAlive().GetAtk()>=enemyPlayer.firstHeroAlive().GetHp())
+                {
+                    return matchSwordEndGame.getIndexSwapGem();
+                }
+            }
+
+
             return new Pair<int>(-1, -1);
         }
 

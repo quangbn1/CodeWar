@@ -30,7 +30,7 @@ namespace bot {
             return suggestMatch();;
         }
 
-        public Pair<int> recommendSwapGem(Player botPlayer) {
+        public Pair<int> recommendSwapGem(Player botPlayer, Player enemyPlayer) {
             List<GemSwapInfo> listMatchGem = suggestMatch();
 
             Console.WriteLine("recommendSwapGem " + listMatchGem.Count);
@@ -43,16 +43,39 @@ namespace bot {
             // if (matchGemSizeThanFour != null) {
             //     return matchGemSizeThanFour.getIndexSwapGem();
             // }
+            
+            //Combo level 3
 
-            //Gem Level 3
-            foreach (GemSwapInfo matchGem in listMatchGem)
-            {
-                if(matchGem.level>2)
-                {
-                    Console.WriteLine("  -----+++ Choose Gems: "+ matchGem.level);
-                    return matchGem.getIndexSwapGem();
-                }
+            //Gem Level 3 + Has Exp
+            GemSwapInfo matchThreeComboExp = listMatchGem.Where(gemMatch => (gemMatch.level>2) && gemMatch.hasExpGem == true).FirstOrDefault();
+            if (matchThreeComboExp != null) {
+                Console.WriteLine("  -----+++ Choose Gems: "+ matchThreeComboExp.level);
+                return matchThreeComboExp.getIndexSwapGem();
             }
+
+            //Gem Level 3 + Has Sword
+            GemSwapInfo matchThreeComboSword = listMatchGem.Where(gemMatch => (gemMatch.level>2) && gemMatch.hasSwordGem == true).FirstOrDefault();
+            if (matchThreeComboSword != null) {
+                Console.WriteLine("  -----+++ Choose Gems: "+ matchThreeComboSword.level);
+                return matchThreeComboSword.getIndexSwapGem();
+            }
+
+            //Gem Level 3 + Has Modifier
+            GemSwapInfo matchThreeComboModifier = listMatchGem.Where(gemMatch => (gemMatch.level>2) && gemMatch.hasModifeGem == true).FirstOrDefault();
+            if (matchThreeComboModifier != null) {
+                Console.WriteLine("  -----+++ Choose Gems: "+ matchThreeComboModifier.level);
+                return matchThreeComboModifier.getIndexSwapGem();
+            }
+            
+            //Match combo level 3
+            GemSwapInfo matchThreeCombo = CheckMoreNeedCombo(3);
+            if(matchThreeCombo!=null)
+            {
+                Console.WriteLine("  -----+++ Choose NORMAL Gems: ");
+                Console.WriteLine("  -----+++ Choose Gems: "+ matchThreeCombo.level);
+                return matchThreeCombo.getIndexSwapGem();
+            }
+
 
             //Test
             //Find gem modifier
@@ -64,16 +87,53 @@ namespace bot {
                 }
             }
 
-            //Gem Level 2
-            foreach (GemSwapInfo matchGem in listMatchGem)
+            //Combo level 2
+
+            //Gem Level 2 + Has Exp
+            GemSwapInfo matchTowComboExp = listMatchGem.Where(gemMatch => (gemMatch.level>1) && gemMatch.hasExpGem == true).FirstOrDefault();
+            if (matchTowComboExp != null) {
+                Console.WriteLine("  -----+++ Choose EXP Gems: ");
+                Console.WriteLine("  -----+++ Choose Gems: "+ matchTowComboExp.level);
+                return matchTowComboExp.getIndexSwapGem();
+            }
+
+            //Gem Level 2 + Has Sword
+            GemSwapInfo matchTwoComboSword = listMatchGem.Where(gemMatch => (gemMatch.level>1) && gemMatch.hasSwordGem == true).FirstOrDefault();
+            if (matchTwoComboSword != null) {
+                Console.WriteLine("  -----+++ Choose SWORD Gems: ");
+                Console.WriteLine("  -----+++ Choose Gems: "+ matchTwoComboSword.level);
+                return matchTwoComboSword.getIndexSwapGem();
+            }
+
+            //Will kill first hero has high atk or can kill my hero
+            GemSwapInfo matchSwordToKill = listMatchGem.Where(gemMatch => gemMatch.type == GemType.SWORD).FirstOrDefault();
+
+            if(matchSwordToKill!=null)
             {
-                if(matchGem.level>1)
-                {
-                    Console.WriteLine("  -----+++ Choose Gems: "+ matchGem.level);
-                    return matchGem.getIndexSwapGem();
+                if (enemyPlayer.firstHeroAlive().GetAtk()>=15 || 
+                    enemyPlayer.firstHeroAlive().GetAtk()>=botPlayer.firstHeroAlive().GetHp() ) {
+                Console.WriteLine(" ==+----- Will kill first hero has high atk or can kill my hero > ");
+                    return matchSwordToKill.getIndexSwapGem();
                 }
             }
 
+            //Gem Level 2 + Has Modifier
+            GemSwapInfo matchTwoComboModifier = listMatchGem.Where(gemMatch => (gemMatch.level>1) && gemMatch.hasModifeGem == true).FirstOrDefault();
+            if (matchTwoComboModifier != null) {
+                Console.WriteLine("  -----+++ Choose MODIFIER Gems: ");
+                Console.WriteLine("  -----+++ Choose Gems: "+ matchTwoComboModifier.level);
+                return matchTwoComboModifier.getIndexSwapGem();
+            }
+
+            //Match combo level 2
+            GemSwapInfo matchTwoCombo = CheckMoreNeedCombo(2);
+            if(matchTwoCombo!=null)
+            {
+                Console.WriteLine("  -----+++ NORMAL: "+ matchTwoCombo.level);
+                Console.WriteLine("  -----+++ Choose Gems: "+ matchTwoCombo.level);
+                return matchTwoCombo.getIndexSwapGem();
+            }
+            
 Console.WriteLine("Gem");
 foreach (GemType type in myHeroGemType)
 {
@@ -129,9 +189,58 @@ Console.WriteLine("Gem");
             return listMatchGem[0].getIndexSwapGem();
         }
 
+        public GemSwapInfo CheckMoreNeedCombo(int level = 2)
+        {
+            List<GemSwapInfo> listMatchGem = suggestMatch();
+            level--;
+
+            if(listMatchGem==null) return null;
+            
+            //Check more need
+            List<GemSwapInfo> matchCombo = listMatchGem.Where(gemMatch => (gemMatch.level>level)).ToList();
+            HashSet<GemType> gemNeeds = GetMyHeroGemsType();
+            GemSwapInfo moreNeedSwapGem = null;
+            int maxCountNeed = 0;
+
+            foreach (GemSwapInfo match in matchCombo)
+            {
+                int countNeed = 0;
+                foreach (GemType type in gemNeeds)
+                {
+                    foreach (GemType matchGemType in match.gemType)
+                    {
+                        if(matchGemType == type)
+                        {
+                            countNeed++;
+
+                            if(countNeed>maxCountNeed)
+                            {
+                                maxCountNeed = countNeed;
+                                moreNeedSwapGem = match;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if(moreNeedSwapGem!=null && maxCountNeed>0)
+            {
+                Console.WriteLine("  -----+++ Has Need: "+ maxCountNeed);
+                Console.WriteLine("  -----+++ Choose Gems Level: "+ moreNeedSwapGem.level);
+                return moreNeedSwapGem;
+            }
+
+            return null;
+        }
+
         public void UpdateMyGemType(HashSet<GemType> gemType)
         {
             myHeroGemType = gemType;
+        }
+
+        public HashSet<GemType> GetMyHeroGemsType()
+        {
+            return myHeroGemType;
         }
 
         public List<Gem> getGems()
@@ -161,6 +270,7 @@ Console.WriteLine("Gem");
             Gem current = gems[getGemIndexAt(temp1.x, temp1.y)];
             Gem target = gems[getGemIndexAt(temp2.x, temp2.y)];
             //current.isDestroy = true;
+
 
             CustomSwap(current, target);
 
@@ -194,6 +304,20 @@ Console.WriteLine("Gem");
         public GemSwapInfo Drop(List<Gem> gemsMap, GemSwapInfo swapGem)
         {
             List<Gem> result =  new List<Gem>(gemsMap);
+            
+            if(swapGem.gems.Count>0)
+            {
+                foreach (Gem gem in (swapGem.gems))
+                {
+                    swapGem.gemType.Add(gem.type);
+                }
+            }
+
+            //Safe Lock
+            if(swapGem.level>7)
+            {
+                return swapGem;
+            }
             
             //Set destroy type
             foreach (Gem gem in swapGem.gems)
@@ -234,10 +358,19 @@ Console.WriteLine("Gem");
                 }
             }
 
+            Console.WriteLine("  -----------  ");
+
+            foreach (var item in countX)
+            {
+                Console.Write(item+" ");
+            }
+            Console.WriteLine("");
+            Console.WriteLine("  -----------  ");
+
             //Drop gem
             foreach (Gem row in rowGem)
             {
-                List<Gem> newColumn = DownGem(row, countX[row.x]);
+                List<Gem> newColumn = DownGem(row);
 
                 if(newColumn!=null)
                 {
@@ -292,17 +425,31 @@ Console.WriteLine("Gem");
             {
                 bool isFirst = true;
 
+                if(preMatch.Count<3)
+                {
+                    preMatch.Clear();
+                    matchSize = 1;
+                }
+
                 for (int y = 0; y < 7; y++)
                 {
                     Gem currentGem = result[getGemIndexAt(x,y)];
                     Gem nextGem = result[getGemIndexAt(x,y+1)];
 
-                    if(y == 0)
+                    if(preMatch.Count<=0)
                     {
+                        if(currentGem.isDisable)
+                        {
+                            preMatch.Clear();
+                            
+                            matchSize = 1;
+                            isFirst = true;
+                            continue;
+                        }
                         preMatch.Add(currentGem);
                     }
 
-                    if(currentGem.type == nextGem.type && nextGem.isDisable == false)
+                    if(currentGem.type == nextGem.type && nextGem.isDisable == false && currentGem.isDisable == false)
                     {
                         matchSize++;
 
@@ -327,30 +474,42 @@ Console.WriteLine("Gem");
                         }
 
                         preMatch.Clear();
-                        preMatch.Add(nextGem);
                         
                         matchSize = 1;
                         isFirst = true;
                     }
                 }
             }
+            preMatch.Clear();
             
             //Check row
             for (int y = 0; y < 8; y++)
             {
+                if(preMatch.Count<3)
+                {
+                    preMatch.Clear();
+                    matchSize = 1;
+                }
                 bool isFirst = true;
-
                 for (int x = 0; x < 7; x++)
                 {
                     Gem currentGem = result[getGemIndexAt(x,y)];
                     Gem nextGem = result[getGemIndexAt(x+1,y)];
 
-                    if(x == 0)
+                    if(preMatch.Count<=0)
                     {
+                        if(currentGem.isDisable)
+                        {
+                            preMatch.Clear();
+                            
+                            matchSize = 1;
+                            isFirst = true;
+                            continue;
+                        }
                         preMatch.Add(currentGem);
                     }
 
-                    if(currentGem.type == nextGem.type && nextGem.isDisable == false)
+                    if(currentGem.type == nextGem.type && nextGem.isDisable == false && currentGem.isDisable == false)
                     {
                         matchSize++;
 
@@ -375,7 +534,6 @@ Console.WriteLine("Gem");
                         }
 
                         preMatch.Clear();
-                        preMatch.Add(nextGem);
                         
                         matchSize = 1;
                         isFirst = true;
@@ -384,6 +542,53 @@ Console.WriteLine("Gem");
             }
 
             preMatch.Clear();
+                
+            // for (int y = 0; y < 8; y++)
+            // {
+            //     for (int x = 0; x < 8; x++)
+            //     {
+            //         if(result[getGemIndexAt(x, y)].isDestroy)
+            //         {
+            //             Console.Write("- ");
+            //         }
+            //         else if(result[getGemIndexAt(x, y)].isDisable)
+            //         {
+            //             Console.Write("= ");
+            //         }
+            //         else
+            //         {
+            //             Console.Write((int) result[getGemIndexAt(x, y)].type +" ");
+            //         }
+            //     }
+            //     Console.WriteLine(" ");
+            // }
+            // Console.WriteLine(" ==================== ");
+            
+            //Check gems
+            foreach (Gem gem in swapGem.gems)
+            {
+                if(gem.modifier!=GemModifier.NONE && gem.modifier != GemModifier.POINT)
+                {
+                    if(gem.modifier == GemModifier.EXTRA_TURN)
+                    {
+                        swapGem.hasExtraGem = true;
+                    }
+
+                    if(gem.modifier == GemModifier.EXPLODE_HORIZONTAL || 
+                       gem.modifier == GemModifier.EXPLODE_SQUARE || 
+                       gem.modifier == GemModifier.EXPLODE_VERTICAL)
+                    {
+                        swapGem.hasExpGem = true;
+                    }
+
+                    swapGem.hasModifeGem = true;
+                }
+
+                if(gem.type == GemType.SWORD)
+                {
+                    swapGem.hasSwordGem = true;
+                }
+            }
 
             //Drop again
             if(countCombo>0)
@@ -395,42 +600,135 @@ Console.WriteLine("Gem");
                 newSwapGem.gems.Clear();
                 newSwapGem.gems.AddRange(resultMatch);
                 newSwapGem.level = swapGem.level;
+                //Get infor
+                newSwapGem.hasExtraGem = swapGem.hasExtraGem;
+                newSwapGem.hasExpGem = swapGem.hasExpGem;
+                newSwapGem.hasModifeGem = swapGem.hasModifeGem;
+                newSwapGem.hasSwordGem = swapGem.hasSwordGem;
+
+                //Check hor-ver gem
+                //PRe destroy
+                foreach (Gem gem in newSwapGem.gems)
+                {
+                    gem.isDisable = true;
+                }
+
+                foreach (Gem gem in newSwapGem.gems.ToList())
+                {
+                    if(gem.modifier == GemModifier.EXPLODE_HORIZONTAL)
+                    {
+                        for (int x = 0; x < 8; x++)
+                        {
+                            if(result[getGemIndexAt(x, gem.y)].isDisable == false)
+                            {
+                                newSwapGem.gems.Add(result[getGemIndexAt(x, gem.y)]);
+                            }
+                        }
+                    }
+
+                    if(gem.modifier == GemModifier.EXPLODE_VERTICAL)
+                    {
+                        for (int y = 0; y < 8; y++)
+                        {
+                            if(result[getGemIndexAt(gem.x, y)].isDisable == false)
+                            {
+                                newSwapGem.gems.Add(result[getGemIndexAt(gem.x, y)]);
+                            }
+                        }
+                    }
+
+                    if(gem.modifier == GemModifier.EXPLODE_SQUARE)
+                    {
+                        int startX = gem.x>0?gem.x-1:gem.x;
+                        int endX = gem.x<7?gem.x+1:gem.x;
+                        int startY = gem.y>0?gem.y-1:gem.x;
+                        int endY = gem.y<7?gem.x+1:gem.x;
+
+                        for (int x = startX; x <= endX; x++)
+                        {
+                            for (int y = startY; y <= endY; y++)
+                            {
+                                if(result[getGemIndexAt(x, y)].isDisable == false)
+                                {
+                                    newSwapGem.gems.Add(result[getGemIndexAt(x, y)]);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                //Undo
+                foreach (Gem gem in newSwapGem.gems)
+                {
+                    gem.isDisable = false;
+                }
 
                 GemSwapInfo newSwapGem2 = Drop(result, newSwapGem);
 
+                //Get infor
                 swapGem.level = newSwapGem2.level;
+                swapGem.hasExtraGem = newSwapGem2.hasExtraGem;
+                swapGem.hasExpGem = newSwapGem2.hasExpGem;
+                swapGem.hasModifeGem = newSwapGem2.hasModifeGem;
+                swapGem.hasSwordGem = newSwapGem2.hasSwordGem;
+
+                foreach (GemType type in newSwapGem2.gemType)
+                {
+                    swapGem.gemType.Add(type);
+                }
             }
 
+            //Check warning
+
+
+            foreach (Gem disableGem in swapGem.gems)
+            {
+                disableGem.isDisable = false;
+            }
+            
+
             result.Clear();
+
+            Console.WriteLine(" ++++Gem Type++++ ");
+            foreach (GemType type in swapGem.gemType)
+            {
+                Console.Write(type+" ");
+            }
+            Console.WriteLine(" ++++++++++++++++ ");
 //RETURN
             return swapGem;
         }
 
-        public List<Gem> DownGem(Gem gem, int step = 1)
+        public List<Gem> DownGem(Gem gem)
         {
-            List<Gem> result = null;
+            List<Gem> result = new List<Gem>();
+            List<Gem> ableGems = new List<Gem>();
+            List<Gem> disableGems = new List<Gem>();
 
-            Gem swapGem = null;
-            if(gem.y+step<8)
+            for (int i = 0; i < 8; i++)
             {
-                swapGem = gems[getGemIndexAt(gem.x, gem.y+step)];
+                Gem g = gems[getGemIndexAt(gem.x, i)];
 
-                CustomSwap(gem, swapGem);
-                
-                if(gem.y == 8-step)
+                if(g.isDisable || g.isDestroy)
                 {
-                    result = new List<Gem>();
-                    for (int i = 0; i < 8; i++)
-                    {
-                        result.Add(gems[getGemIndexAt(gem.x, i)]);
-                    }
+                    disableGems.Add(g);
                 }
                 else
                 {
-                    result = DownGem(gems[getGemIndexAt(swapGem.x, swapGem.y+1)], step);
+                    ableGems.Add(g);
                 }
+            }
 
-                CustomSwap(gem, swapGem);
+            //Add able gems first
+            foreach (Gem g in ableGems)
+            {
+                result.Add(g);
+            }
+
+            //Add destroy gems next
+            foreach (Gem g in disableGems)
+            {
+                result.Add(gem);
             }
             return result;
         }
@@ -494,7 +792,6 @@ Console.WriteLine("Gem");
 
             return listMatchGem;
         }
-
         private void checkMatchSwapGem(List<GemSwapInfo> listMatchGem, Gem currentGem, Gem swapGem) {
             swap(currentGem, swapGem);
             HashSet<Gem> matchGems = matchesAt(currentGem.x, currentGem.y);
@@ -557,6 +854,68 @@ Console.WriteLine("Gem");
             b.x = tempX;
             b.y = tempY;
         }
+
+        // private HashSet<Gem> CustomMatchesAt(int x, int y) {
+        //     HashSet<Gem> res = new HashSet<Gem>();
+        //     Gem center = gemAt(x, y);
+        //     if (center == null  || center.isDisable || center.isDestroy) {
+        //         return res;
+        //     }
+
+        //     // check horizontally
+        //     List<Gem> hor = new List<Gem>();
+        //     hor.Add(center);
+        //     int xLeft = x - 1, xRight = x + 1;
+        //     while (xLeft >= 0) {
+        //         Gem gemLeft = gemAt(xLeft, y);
+        //         if (gemLeft != null) {
+        //             if (!gemLeft.sameType(center) || gemLeft.isDisable || gemLeft.isDestroy) {
+        //                 break;
+        //             }
+        //             hor.Add(gemLeft);
+        //         }
+        //         xLeft--;
+        //     }
+        //     while (xRight < 8) {
+        //         Gem gemRight = gemAt(xRight, y);
+        //         if (gemRight != null) {
+        //             if (!gemRight.sameType(center) || gemRight.isDisable || gemRight.isDestroy) {
+        //                 break;
+        //             }
+        //             hor.Add(gemRight);
+        //         }
+        //         xRight++;
+        //     }
+        //     if (hor.Count >= 3) res.UnionWith(hor);
+
+        //     // check vertically
+        //     List<Gem> ver = new List<Gem>();
+        //     ver.Add(center);
+        //     int yBelow = y - 1, yAbove = y + 1;
+        //     while (yBelow >= 0) {
+        //         Gem gemBelow = gemAt(x, yBelow);
+        //         if (gemBelow != null) {
+        //             if (!gemBelow.sameType(center) || gemBelow.isDisable || gemBelow.isDestroy) {
+        //                 break;
+        //             }
+        //             ver.Add(gemBelow);
+        //         }
+        //         yBelow--;
+        //     }
+        //     while (yAbove < 8) {
+        //         Gem gemAbove = gemAt(x, yAbove);
+        //         if (gemAbove != null) {
+        //             if (!gemAbove.sameType(center) || gemAbove.isDisable || gemAbove.isDestroy) {
+        //                 break;
+        //             }
+        //             ver.Add(gemAbove);
+        //         }
+        //         yAbove++;
+        //     }
+        //     if (ver.Count >= 3) res.UnionWith(ver);
+
+        //     return res;
+        // }
 
         private HashSet<Gem> matchesAt(int x, int y) {
             HashSet<Gem> res = new HashSet<Gem>();

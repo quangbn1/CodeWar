@@ -11,7 +11,17 @@ namespace bot
 
         public List<Gem> gems = new List<Gem>();
 
+        public HashSet<GemType> gemType = new HashSet<GemType>();
+
         public int level = 0;
+
+        public bool hasExtraGem = false;
+
+        public bool hasExpGem = false;
+
+        public bool hasModifeGem = false;
+
+        public bool hasSwordGem = false;
 
         public GemSwapInfo(int index1, int index2, int sizeMatch, GemType type)
         {

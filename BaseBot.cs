@@ -292,7 +292,7 @@ namespace bot
         
         public void SendSwapGem()
         {
-            SendSwapGem(grid.recommendSwapGem(botPlayer));
+            SendSwapGem(grid.recommendSwapGem(botPlayer, enemyPlayer));
         }
 
         public void SendSwapGem(Pair<int> swapGem)
