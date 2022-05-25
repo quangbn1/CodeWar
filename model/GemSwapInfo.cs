@@ -49,5 +49,11 @@ namespace bot
         public Pair<int> getIndexSwapGem() {
             return new Pair<int>(index1, index2);
         }
+
+        public void SetIndexSwapGem(int param1, int param2)
+        {
+            this.index1 = param1;
+            this.index2 = param2;
+        }
     }
 }

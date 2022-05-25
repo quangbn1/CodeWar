@@ -42,6 +42,9 @@ namespace bot
             currentPlayerId = gameSession.GetInt("currentPlayerId");
             log("StartGame ");
 
+            countBuff = 0;
+            botPlayer.isFirstRevert = false;
+
             // SendFinishTurn(true);
             //taskScheduler.schedule(new FinishTurn(true), new Date(System.currentTimeMillis() + delaySwapGem));
             TaskSchedule(delaySwapGem, _ => SendFinishTurn(true));
@@ -101,6 +104,16 @@ namespace bot
             }
         }
 
+        protected override void CastSkillAgain(ISFSObject paramz)
+        {
+            String error = paramz.GetUtfString("message");
+
+            if(error == "Wrong target")
+            {
+                TaskSchedule(delaySwapGem, _ => SendSwapGem());
+            }
+        }
+
         protected override void StartTurn(ISFSObject paramz)
         {
             currentPlayerId = paramz.GetInt("currentPlayerId");
@@ -111,7 +124,29 @@ namespace bot
 
             grid.mathsGem.Clear();
             
-            grid.UpdateMyGemType(botPlayer.getRecommendGemType());
+            bool isFireFirst = false;
+
+            foreach (Hero eHero in enemyPlayer.heroes)
+            {
+                if(eHero.id==HeroIdEnum.CERBERUS && eHero.GetAtk()>=15 && eHero.GetHp()>=15)
+                {
+                    isFireFirst = true;
+                }
+                else if(eHero.id==HeroIdEnum.MERMAID && eHero.GetAtk()>=15 && eHero.GetHp()>=15)
+                {
+                    isFireFirst = true;
+                }
+                else if(eHero.id==HeroIdEnum.SEA_GOD && eHero.GetAtk()>=15 && eHero.GetHp()>=15)
+                {
+                    isFireFirst = true;
+                }
+                else if(eHero.id==HeroIdEnum.THUNDER_GOD && eHero.GetAtk()>=15 && eHero.GetHp()>=15)
+                {
+                    isFireFirst = true;
+                }
+            }
+
+            grid.UpdateMyGemType(botPlayer.getRecommendGemType(isFireFirst));
             
             //Swap five gems
             var fiveGem = GetFiveGems();
@@ -158,6 +193,7 @@ namespace bot
             TaskSchedule(delaySwapGem, _ => SendSwapGem());
         }
         
+        private int countBuff = 0;
         public bool HeroCastSkillFirst()
         {
             List<Hero> herosFullMana = botPlayer.allHeroFullMana();
@@ -169,18 +205,40 @@ namespace bot
                 if(hero.id == HeroIdEnum.SEA_SPIRIT)
                 {
                     Hero target = null;
-                    for (int i = botPlayer.heroes.Count-1; i >=0; i--)
+
+                    if(!botPlayer.heroes[1].isAlive())
                     {
-                        if(botPlayer.heroes[i].isAlive())
+                        countBuff = 10;
+                        target = hero;
+                    }
+                    else 
+                    {
+                        for (int i = botPlayer.heroes.Count-1; i >=0; i--)
                         {
-                            target = botPlayer.heroes[i];
-                            break;
+                            if(botPlayer.heroes[i].isAlive())
+                            {
+                                countBuff++;
+                                target = botPlayer.heroes[i];
+                                break;
+                            }
                         }
+                    }
+
+                    if(countBuff>0)
+                    {
+                        botPlayer.isFirstRevert = true;
                     }
 
                     if(target!=null)
                     {
-                        TaskSchedule(delaySwapGem, _ => SendCastSkill(hero, target));
+                        if(target.isAlive())
+                        {
+                            TaskSchedule(delaySwapGem, _ => SendCastSkill(hero, target));
+                        }
+                        else
+                        {
+                            TaskSchedule(delaySwapGem, _ => SendCastSkill(hero));
+                        }
                     }
                     else
                     {
@@ -201,28 +259,12 @@ namespace bot
             if (heroFullMana != null)
             {
                 List<Hero> herosFullMana = botPlayer.allHeroFullMana();
+
                 foreach (Hero hero in herosFullMana)
                 {
                     if(hero.id == HeroIdEnum.SEA_SPIRIT)
                     {
-                        Hero target = null;
-                        for (int i = botPlayer.heroes.Count-1; i >=0; i--)
-                        {
-                            if(botPlayer.heroes[i].isAlive())
-                            {
-                                target = botPlayer.heroes[i];
-                                break;
-                            }
-                        }
-
-                        if(target!=null)
-                        {
-                            TaskSchedule(delaySwapGem, _ => SendCastSkill(hero, target));
-                        }
-                        else
-                        {
-                            TaskSchedule(delaySwapGem, _ => SendCastSkill(hero));
-                        }
+                        TaskSchedule(delaySwapGem, _ => SendCastSkill(hero));
 
                         return true;
                     }
@@ -232,7 +274,10 @@ namespace bot
                         TaskSchedule(delaySwapGem, _ => SendCastSkill(heroFullMana));
                         return true;
                     }
-                    
+                }
+
+                foreach (Hero hero in herosFullMana)
+                {
                     if(hero.id == HeroIdEnum.FIRE_SPIRIT)
                     {
                         List<Gem> gems = grid.getGems();
@@ -249,7 +294,7 @@ namespace bot
                         //Kill high attack hero and has skill
                         foreach (Hero eHero in  enemyPlayer.heroes)
                         {
-                            if(eHero.isAlive() && eHero.GetAtk()>=12 && eHero.isFullMana())
+                            if(eHero.isAlive() && eHero.GetAtk()>=10 && eHero.isFullMana())
                             {
                                 if(eHero.id == HeroIdEnum.MERMAID)
                                 {
@@ -279,17 +324,26 @@ namespace bot
                             }
                         }
 
+
                         //Kill high attack hero
                         foreach (Hero eHero in  enemyPlayer.heroes)
                         {
-                            if(eHero.isAlive() && eHero.GetAtk()>=12)
+                            if(eHero.isAlive() && eHero.GetAtk()>=10)
                             {
-                                if(eHero.id == HeroIdEnum.AIR_SPIRIT)
+                                if(eHero.id == HeroIdEnum.CERBERUS)
                                 {
                                     TaskSchedule(delaySwapGem, _ => SendCastSkill(heroFullMana, eHero));
                                     return true;
                                 }
-                                else if(eHero.id == HeroIdEnum.CERBERUS)
+                            }
+                        }
+
+                        //Kill high attack hero
+                        foreach (Hero eHero in  enemyPlayer.heroes)
+                        {
+                            if(eHero.isAlive() && eHero.GetAtk()>=10)
+                            {
+                                if(eHero.id == HeroIdEnum.AIR_SPIRIT)
                                 {
                                     TaskSchedule(delaySwapGem, _ => SendCastSkill(heroFullMana, eHero));
                                     return true;
@@ -304,7 +358,20 @@ namespace bot
                                     TaskSchedule(delaySwapGem, _ => SendCastSkill(heroFullMana, eHero));
                                     return true;
                                 }
-                                else if(eHero.id == HeroIdEnum.MONK)
+                                else if(eHero.id == HeroIdEnum.SEA_GOD)
+                                {
+                                    TaskSchedule(delaySwapGem, _ => SendCastSkill(heroFullMana, eHero));
+                                    return true;
+                                }
+                            }
+                        }
+
+                        //Kill high attack hero
+                        foreach (Hero eHero in  enemyPlayer.heroes)
+                        {
+                            if(eHero.isAlive() && eHero.GetAtk()>=10)
+                            {
+                                if(eHero.id == HeroIdEnum.MONK)
                                 {
                                     TaskSchedule(delaySwapGem, _ => SendCastSkill(heroFullMana, eHero));
                                     return true;
@@ -314,36 +381,40 @@ namespace bot
 
                         foreach (Hero eHero in  enemyPlayer.heroes)
                         {
-                            if(eHero.id == HeroIdEnum.SEA_GOD && eHero.isAlive())
-                            {
-                                TaskSchedule(delaySwapGem, _ => SendCastSkill(heroFullMana, eHero));
-                                return true;
-                            }
-
-                            if(eHero.id == HeroIdEnum.DISPATER && eHero.isAlive())
-                            {
-                                TaskSchedule(delaySwapGem, _ => SendCastSkill(heroFullMana, eHero));
-                                return true;
-                            }
-
-                            if(eHero.id == HeroIdEnum.MONK && eHero.isAlive())
+                            if(eHero.id == HeroIdEnum.FIRE_SPIRIT && eHero.isAlive() && eHero.GetHp()>=18)
                             {
                                 TaskSchedule(delaySwapGem, _ => SendCastSkill(heroFullMana, eHero));
                                 return true;
                             }
                         }
                         
-
-                        //Dung skill neu giet sap duoc muc tieu
-                        for (int i = enemyPlayer.heroes.Count-1; i >=0 ; i--)
+                        foreach (Hero eHero in  enemyPlayer.heroes)
                         {
-                            if(enemyPlayer.heroes[i].GetAtk() + fireGemCount >= enemyPlayer.heroes[i].GetHp() && enemyPlayer.heroes[i].isAlive())
+                            if(eHero.id == HeroIdEnum.SEA_GOD && eHero.isAlive())
                             {
-                                TaskSchedule(delaySwapGem, _ => SendCastSkill(heroFullMana, enemyPlayer.heroes[i]));
+                                TaskSchedule(delaySwapGem, _ => SendCastSkill(heroFullMana, eHero));
                                 return true;
                             }
                         }
-
+                        
+                        foreach (Hero eHero in  enemyPlayer.heroes)
+                        {
+                            if(eHero.id == HeroIdEnum.CERBERUS && eHero.isAlive())
+                            {
+                                TaskSchedule(delaySwapGem, _ => SendCastSkill(heroFullMana, eHero));
+                                return true;
+                            }
+                        }
+                        
+                        foreach (Hero eHero in  enemyPlayer.heroes)
+                        {
+                            if(eHero.id == HeroIdEnum.DISPATER && eHero.isAlive())
+                            {
+                                TaskSchedule(delaySwapGem, _ => SendCastSkill(heroFullMana, eHero));
+                                return true;
+                            }
+                        }
+                        
                         foreach (Hero eHero in  enemyPlayer.heroes)
                         {
                             if(eHero.id == HeroIdEnum.AIR_SPIRIT && eHero.isAlive())
@@ -351,16 +422,23 @@ namespace bot
                                 TaskSchedule(delaySwapGem, _ => SendCastSkill(heroFullMana, eHero));
                                 return true;
                             }
+                        }
+                        
 
-                            if(eHero.id == HeroIdEnum.CERBERUS && eHero.isAlive())
+                        foreach (Hero eHero in  enemyPlayer.heroes)
+                        {
+                            if(eHero.id == HeroIdEnum.MONK && eHero.isAlive() && eHero.isFullMana())
                             {
-                                TaskSchedule(delaySwapGem, _ => SendCastSkill(heroFullMana, eHero));
-                                return true;
+                                return false;
                             }
+                        }
 
-                            if(eHero.id == HeroIdEnum.MERMAID && eHero.isAlive())
+                        //Dung skill neu giet sap duoc muc tieu
+                        for (int i = enemyPlayer.heroes.Count-1; i >=0 ; i--)
+                        {
+                            if(enemyPlayer.heroes[i].GetAtk() + fireGemCount >= enemyPlayer.heroes[i].GetHp() && enemyPlayer.heroes[i].isAlive())
                             {
-                                TaskSchedule(delaySwapGem, _ => SendCastSkill(heroFullMana, eHero));
+                                TaskSchedule(delaySwapGem, _ => SendCastSkill(heroFullMana, enemyPlayer.heroes[i]));
                                 return true;
                             }
                         }

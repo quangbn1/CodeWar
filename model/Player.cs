@@ -50,27 +50,108 @@ namespace bot {
 
         //public bool isFirstRevert = false;
 
-        public bool isChangeGetGems = false;
+        public bool isFirstRevert = false;
 
         public HashSet<GemType> getRecommendGemType() {
+
             heroGemType.Clear();
-            foreach(var hero in heroes){
-                if (!hero.isAlive()) continue;
-                
-                foreach(var gt in hero.gemTypes){
-                    heroGemType.Add((GemType)gt);
+
+            // if(!heroes[0].isAlive() || heroes[0].isFullMana())
+            // {
+            //     isFirstRevert = true;
+            // }
+
+            if(isFirstRevert)
+            {
+                //Revert
+                for (int i = heroes.Count-1; i >=0; i--)
+                {
+                    if (!heroes[i].isAlive()) continue;
+                    
+                    foreach(var gt in heroes[i].gemTypes){
+                        heroGemType.Add((GemType)gt);
+                    }
+                }
+            }
+            else
+            {
+                foreach(var hero in heroes){
+                    if (!hero.isAlive()) continue;
+                    
+                    foreach(var gt in hero.gemTypes){
+                        heroGemType.Add((GemType)gt);
+                    }
                 }
             }
 
-            if(!heroes[0].isAlive()|| heroes[0].isFullMana())
+            return heroGemType;
+        }
+
+        public HashSet<GemType> getRecommendGemType(bool hasWarning = false) {
+
+            heroGemType.Clear();
+
+            foreach (Hero hero in heroes)
             {
-                isFirstHeroUseSkill = true;
+                if(hero.id == HeroIdEnum.FIRE_SPIRIT && !hero.isAlive())
+                {
+                    hasWarning = false;
+                }
             }
 
-            if(isFirstHeroUseSkill)
+            if(hasWarning)
             {
-                heroGemType = heroGemType.Reverse().ToHashSet();
-                //isFirstRevert = true;
+                foreach (Hero hero in heroes)
+                {
+                    if(hero.id == HeroIdEnum.FIRE_SPIRIT)
+                    {
+                        foreach(var gt in hero.gemTypes)
+                        {
+                            heroGemType.Add((GemType)gt);
+                        }
+                    }
+                }
+
+                foreach (Hero hero in heroes)
+                {
+                    if(hero.id != HeroIdEnum.FIRE_SPIRIT)
+                    {
+                        foreach(var gt in hero.gemTypes)
+                        {
+                            heroGemType.Add((GemType)gt);
+                        }
+                    }
+                }
+
+                return heroGemType;
+            }
+
+            // if(!heroes[0].isAlive() || heroes[0].isFullMana())
+            // {
+            //     isFirstRevert = true;
+            // }
+
+            if(isFirstRevert)
+            {
+                //Revert
+                for (int i = heroes.Count-1; i >=0; i--)
+                {
+                    if (!heroes[i].isAlive()) continue;
+                    
+                    foreach(var gt in heroes[i].gemTypes){
+                        heroGemType.Add((GemType)gt);
+                    }
+                }
+            }
+            else
+            {
+                foreach(var hero in heroes){
+                    if (!hero.isAlive()) continue;
+                    
+                    foreach(var gt in hero.gemTypes){
+                        heroGemType.Add((GemType)gt);
+                    }
+                }
             }
 
             return heroGemType;

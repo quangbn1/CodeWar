@@ -131,6 +131,8 @@ namespace bot
         {
             String error = param.GetUtfString("message");
             log(error);
+
+            CastSkillAgain(param);
         }
 
         private void onLoginSuccess(BaseEvent evt)
@@ -242,6 +244,8 @@ namespace bot
 
         protected abstract void StartTurn(ISFSObject paramz);
 
+        protected abstract void CastSkillAgain(ISFSObject paramz);
+
         public void SendFinishTurn(bool isFirstTurn)
         {
             SFSObject data = new SFSObject();
@@ -260,8 +264,9 @@ namespace bot
             var data = new SFSObject();
 
             data.PutUtfString("casterId", heroCastSkill.id.ToString());
-            if(target!=null)
+            if(target!=null && target.isAlive())
             {
+                
                 data.PutUtfString("targetId", target.id.ToString());
             }
             else
