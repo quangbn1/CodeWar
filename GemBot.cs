@@ -366,16 +366,35 @@ namespace bot
                             }
                         }
 
+
                         //Kill high attack hero
                         foreach (Hero eHero in  enemyPlayer.heroes)
                         {
-                            if(eHero.isAlive() && eHero.GetAtk()>=10)
+                            if(eHero.isAlive() && eHero.GetHp()>=20)
                             {
                                 if(eHero.id == HeroIdEnum.MONK)
                                 {
                                     TaskSchedule(delaySwapGem, _ => SendCastSkill(heroFullMana, eHero));
                                     return true;
                                 }
+                            }
+                        }
+
+                        foreach (Hero eHero in  enemyPlayer.heroes)
+                        {
+                            if(eHero.id == HeroIdEnum.SEA_GOD && eHero.isAlive() && eHero.GetHp()>=20)
+                            {
+                                TaskSchedule(delaySwapGem, _ => SendCastSkill(heroFullMana, eHero));
+                                return true;
+                            }
+                        }
+
+                        foreach (Hero eHero in  enemyPlayer.heroes)
+                        {
+                            if(eHero.id == HeroIdEnum.CERBERUS && eHero.isAlive() && eHero.GetHp()>=20)
+                            {
+                                TaskSchedule(delaySwapGem, _ => SendCastSkill(heroFullMana, eHero));
+                                return true;
                             }
                         }
 
@@ -541,14 +560,14 @@ namespace bot
                 return matchFourComboExp.getIndexSwapGem();
             }
 
-            //Get buff damage
-            foreach (GemSwapInfo matchGem in listMatchGem)
-            {
-                if(matchGem.gemModifier==GemModifier.BUFF_ATTACK)
-                {
-                    return matchGem.getIndexSwapGem();
-                }
-            }
+            // //Get buff damage
+            // foreach (GemSwapInfo matchGem in listMatchGem)
+            // {
+            //     if(matchGem.gemModifier==GemModifier.BUFF_ATTACK)
+            //     {
+            //         return matchGem.getIndexSwapGem();
+            //     }
+            // }
 
             //Check 4 sword
             GemSwapInfo matchFourGemSword = listMatchGem.Where(gemMatch => (gemMatch.type == GemType.SWORD) && gemMatch.sizeMatch>3 ).FirstOrDefault();
@@ -595,40 +614,40 @@ namespace bot
 
             //Code
 
-            for (int i = botPlayer.heroes.Count-1; i >=0; i--)
-            {
-                if(!botPlayer.heroes[i].isAlive()) continue;
+            // for (int i = botPlayer.heroes.Count-1; i >=0; i--)
+            // {
+            //     if(!botPlayer.heroes[i].isAlive()) continue;
 
-                if(botPlayer.heroes[i].NeedMana()<=3)
-                {
-                    GemSwapInfo gemSwap = null;
-                    foreach (GemType type in botPlayer.heroes[i].gemTypes)
-                    {
-                        gemSwap = listMatchGem.Where(gemMatch => gemMatch.type == type).FirstOrDefault();
-                    }
+            //     if(botPlayer.heroes[i].NeedMana()<=3)
+            //     {
+            //         GemSwapInfo gemSwap = null;
+            //         foreach (GemType type in botPlayer.heroes[i].gemTypes)
+            //         {
+            //             gemSwap = listMatchGem.Where(gemMatch => gemMatch.type == type).FirstOrDefault();
+            //         }
 
-                    if(gemSwap!=null)
-                    {
-                        if(botPlayer.heroes[i].id == HeroIdEnum.CERBERUS)
-                        {
-                            int countKill = 0;
+            //         if(gemSwap!=null)
+            //         {
+            //             if(botPlayer.heroes[i].id == HeroIdEnum.CERBERUS)
+            //             {
+            //                 int countKill = 0;
 
-                            foreach (Hero eHero in enemyPlayer.heroes)
-                            {
-                                if(botPlayer.heroes[i].GetAtk()+4>=eHero.GetHp())
-                                {
-                                    countKill++;
-                                }
-                            }
+            //                 foreach (Hero eHero in enemyPlayer.heroes)
+            //                 {
+            //                     if(botPlayer.heroes[i].GetAtk()+4>=eHero.GetHp())
+            //                     {
+            //                         countKill++;
+            //                     }
+            //                 }
 
-                            if(countKill>1)
-                            {
-                                return gemSwap.getIndexSwapGem();
-                            }
-                        }
-                    }
-                }
-            }
+            //                 if(countKill>1)
+            //                 {
+            //                     return gemSwap.getIndexSwapGem();
+            //                 }
+            //             }
+            //         }
+            //     }
+            // }
 
 
             //Last sword will end game
